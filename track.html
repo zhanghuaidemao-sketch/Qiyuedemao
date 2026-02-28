@@ -14,12 +14,14 @@ body{
     background:#0f172a;
     color:white;
 }
+
 .login{
     height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
 }
+
 .login-box{
     background:#1e293b;
     padding:40px;
@@ -27,6 +29,7 @@ body{
     width:300px;
     text-align:center;
 }
+
 input{
     width:85%;
     padding:10px;
@@ -34,6 +37,7 @@ input{
     border-radius:5px;
     border:none;
 }
+
 button{
     padding:10px 20px;
     background:#3b82f6;
@@ -42,6 +46,7 @@ button{
     color:white;
     cursor:pointer;
 }
+
 .header{
     height:60px;
     background:#111827;
@@ -50,9 +55,11 @@ button{
     padding-left:20px;
     font-size:20px;
 }
+
 .main{
     padding:20px;
 }
+
 #map{
     height:400px;
     margin-top:20px;
@@ -66,34 +73,25 @@ var map;
 var marker;
 var polyline;
 
+/* 模拟用户 */
+var users = {
+    "admin":"888888",
+    "test":"123123"
+};
+
 /* 登录 */
 function login(){
 
     var user = document.getElementById("user").value;
     var pass = document.getElementById("pass").value;
 
-    fetch("/api/login",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            user:user,
-            password:pass
-        })
-    })
-    .then(res=>{
-        if(!res.ok) throw new Error("登录失败");
-        return res.json();
-    })
-    .then(data=>{
+    if(users[user] && users[user] === pass){
         document.getElementById("loginPage").style.display="none";
         document.getElementById("systemPage").style.display="block";
         initMap();
-    })
-    .catch(()=>{
-        alert("账号或密码错误");
-    });
+    }else{
+        alert("账号或密码错误！");
+    }
 }
 
 /* 查询轨迹 */
@@ -101,33 +99,43 @@ function searchTrack(){
 
     var plate = document.getElementById("plate").value;
 
-    fetch("/api/track?plate=" + plate)
-    .then(res=>res.json())
-    .then(data=>{
+    if(plate===""){
+        alert("请输入车牌号");
+        return;
+    }
 
-        var path = data.path;
+    var base_lat = 22.5431;
+    var base_lng = 114.0579;
 
-        if(polyline) map.removeLayer(polyline);
-        if(marker) map.removeLayer(marker);
+    var path = [];
+    for(var i=0;i<15;i++){
+        path.push([
+            base_lat + i*0.005,
+            base_lng + i*0.005
+        ]);
+    }
 
-        polyline = L.polyline(path,{color:'cyan'}).addTo(map);
-        marker = L.marker(path[0]).addTo(map);
+    if(polyline) map.removeLayer(polyline);
+    if(marker) map.removeLayer(marker);
 
-        var i = 0;
-        var interval = setInterval(function(){
-            if(i >= path.length){
-                clearInterval(interval);
-                return;
-            }
-            marker.setLatLng(path[i]);
-            i++;
-        },800);
-    });
+    polyline = L.polyline(path,{color:'cyan'}).addTo(map);
+    marker = L.marker(path[0]).addTo(map);
+
+    var i = 0;
+    var interval = setInterval(function(){
+        if(i >= path.length){
+            clearInterval(interval);
+            return;
+        }
+        marker.setLatLng(path[i]);
+        i++;
+    },800);
 }
 
 /* 初始化地图 */
 function initMap(){
     map = L.map('map').setView([22.5431,114.0579],13);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
         attribution:'© OpenStreetMap'
     }).addTo(map);
@@ -145,6 +153,10 @@ function initMap(){
         <input type="text" id="user" placeholder="用户名"><br>
         <input type="password" id="pass" placeholder="密码"><br>
         <button onclick="login()">登录</button>
+        <p style="font-size:12px;margin-top:10px;">
+        admin / 888888<br>
+        test / 123123
+        </p>
     </div>
 </div>
 
