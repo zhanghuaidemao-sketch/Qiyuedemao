@@ -2,65 +2,88 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>车辆轨迹查询系统</title>
+<title>车辆轨迹后台系统</title>
 
 <style>
 body {
     margin: 0;
-    padding: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     font-family: Arial, sans-serif;
+    background: #0f172a;
     color: white;
-    background: linear-gradient(-45deg, #141e30, #243b55, #0f2027, #203a43);
-    background-size: 400% 400%;
-    animation: bgMove 10s ease infinite;
 }
 
-@keyframes bgMove {
-    0% {background-position: 0% 50%;}
-    50% {background-position: 100% 50%;}
-    100% {background-position: 0% 50%;}
+/* 顶部栏 */
+.header {
+    height: 60px;
+    background: #111827;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    font-size: 20px;
+    border-bottom: 1px solid #1f2937;
 }
 
-.box {
-    background: rgba(0,0,0,0.6);
+/* 左侧菜单 */
+.sidebar {
+    width: 200px;
+    height: calc(100vh - 60px);
+    background: #111827;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    padding-top: 20px;
+}
+
+.sidebar div {
+    padding: 15px;
+    cursor: pointer;
+}
+
+.sidebar div:hover {
+    background: #1f2937;
+}
+
+/* 主内容 */
+.main {
+    margin-left: 200px;
+    margin-top: 60px;
     padding: 40px;
-    border-radius: 15px;
-    text-align: center;
-    box-shadow: 0 0 20px rgba(0,255,255,0.5);
 }
 
-h1 {
-    margin-bottom: 30px;
+/* 查询框 */
+.card {
+    background: #1e293b;
+    padding: 30px;
+    border-radius: 10px;
+    width: 500px;
 }
 
 input {
     padding: 10px;
-    font-size: 18px;
+    font-size: 16px;
     border-radius: 5px;
     border: none;
+    width: 250px;
 }
 
 button {
     padding: 10px 20px;
-    font-size: 18px;
-    border-radius: 5px;
+    background: #3b82f6;
     border: none;
-    background: cyan;
+    border-radius: 5px;
+    color: white;
     cursor: pointer;
     margin-left: 10px;
 }
 
 button:hover {
-    background: #00ffffaa;
+    background: #2563eb;
 }
 
 .result {
-    margin-top: 30px;
-    font-size: 18px;
+    margin-top: 20px;
+    font-size: 15px;
+    line-height: 25px;
 }
 </style>
 
@@ -74,10 +97,14 @@ function searchTrack() {
     }
 
     document.getElementById("result").innerHTML =
-        "车辆 " + plate + " 的轨迹：<br><br>" +
-        "📍 08:30 - 南山区<br>" +
-        "📍 09:15 - 深圳湾<br>" +
-        "📍 10:05 - 福田中心";
+        "【系统查询结果】<br><br>" +
+        "车牌号：" + plate + "<br>" +
+        "状态：正常行驶<br>" +
+        "最后位置：福田区<br><br>" +
+        "轨迹记录：<br>" +
+        "08:30 - 南山区<br>" +
+        "09:15 - 深圳湾<br>" +
+        "10:05 - 福田中心";
 }
 </script>
 
@@ -85,11 +112,25 @@ function searchTrack() {
 
 <body>
 
-<div class="box">
-    <h1>🚗 车辆轨迹查询系统</h1>
-    <input type="text" id="plate" placeholder="请输入车牌号">
-    <button onclick="searchTrack()">查询</button>
-    <div class="result" id="result"></div>
+<div class="header">
+🚗 智能车辆监控管理系统
+</div>
+
+<div class="sidebar">
+    <div>📊 控制面板</div>
+    <div>🚗 车辆管理</div>
+    <div>📍 轨迹查询</div>
+    <div>👤 用户管理</div>
+    <div>⚙ 系统设置</div>
+</div>
+
+<div class="main">
+    <div class="card">
+        <h2>车辆轨迹查询</h2>
+        <input type="text" id="plate" placeholder="请输入车牌号">
+        <button onclick="searchTrack()">查询</button>
+        <div class="result" id="result"></div>
+    </div>
 </div>
 
 </body>
