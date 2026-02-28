@@ -6,7 +6,6 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
 
 <style>
 body{
@@ -14,32 +13,20 @@ body{
     font-family:Arial;
     background:#0f172a;
     color:white;
-    overflow:hidden;
 }
-
-#particles{
-    position:absolute;
-    width:100%;
-    height:100%;
-    background:black;
-    z-index:-1;
-}
-
 .login{
     height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
 }
-
 .login-box{
-    background:rgba(30,41,59,0.9);
+    background:#1e293b;
     padding:40px;
     border-radius:10px;
     width:300px;
     text-align:center;
 }
-
 input{
     width:85%;
     padding:10px;
@@ -47,7 +34,6 @@ input{
     border-radius:5px;
     border:none;
 }
-
 button{
     padding:10px 20px;
     background:#3b82f6;
@@ -56,7 +42,6 @@ button{
     color:white;
     cursor:pointer;
 }
-
 .header{
     height:60px;
     background:#111827;
@@ -65,11 +50,9 @@ button{
     padding-left:20px;
     font-size:20px;
 }
-
 .main{
     padding:20px;
 }
-
 #map{
     height:400px;
     margin-top:20px;
@@ -79,125 +62,92 @@ button{
 
 <script>
 
-/* 多用户 */
-var users = {};
-users["112233"] = "142536";
-users["admin"] = "888888";
-users["test"] = "123123";
-
-var failCount = 0;
-var lock = false;
-
-function login(){
-    if(lock){
-        alert("系统已锁定，请稍后再试！");
-        return;
-    }
-
-    var user = document.getElementById("user").value;
-    var pass = document.getElementById("pass").value;
-
-    if(users[user] && users[user] === pass){
-        document.getElementById("loginPage").style.display="none";
-        document.getElementById("systemPage").style.display="block";
-    }else{
-        failCount++;
-        if(failCount >= 3){
-            lock = true;
-            alert("错误3次，锁定30秒！");
-            setTimeout(function(){
-                lock = false;
-                failCount = 0;
-            },30000);
-        }else{
-            alert("账号或密码错误！");
-        }
-    }
-}
-
-/* 地图变量 */
 var map;
 var marker;
 var polyline;
 
-/* 查询车辆 */
+/* 登录 */
+function login(){
+
+    var user = document.getElementById("user").value;
+    var pass = document.getElementById("pass").value;
+
+    fetch("/api/login",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            user:user,
+            password:pass
+        })
+    })
+    .then(res=>{
+        if(!res.ok) throw new Error("登录失败");
+        return res.json();
+    })
+    .then(data=>{
+        document.getElementById("loginPage").style.display="none";
+        document.getElementById("systemPage").style.display="block";
+        initMap();
+    })
+    .catch(()=>{
+        alert("账号或密码错误");
+    });
+}
+
+/* 查询轨迹 */
 function searchTrack(){
 
     var plate = document.getElementById("plate").value;
-    if(plate===""){
-        alert("请输入车牌号！");
-        return;
-    }
 
-    var path = [
-        [22.5431,114.0579],
-        [22.5531,114.0679],
-        [22.5631,114.0779],
-        [22.5731,114.0879]
-    ];
+    fetch("/api/track?plate=" + plate)
+    .then(res=>res.json())
+    .then(data=>{
 
-    if(polyline) map.removeLayer(polyline);
-    if(marker) map.removeLayer(marker);
+        var path = data.path;
 
-    polyline = L.polyline(path,{color:'cyan'}).addTo(map);
-    marker = L.marker(path[0]).addTo(map);
+        if(polyline) map.removeLayer(polyline);
+        if(marker) map.removeLayer(marker);
 
-    var i = 0;
-    var interval = setInterval(function(){
-        if(i >= path.length){
-            clearInterval(interval);
-            return;
-        }
-        marker.setLatLng(path[i]);
-        i++;
-    },1000);
+        polyline = L.polyline(path,{color:'cyan'}).addTo(map);
+        marker = L.marker(path[0]).addTo(map);
+
+        var i = 0;
+        var interval = setInterval(function(){
+            if(i >= path.length){
+                clearInterval(interval);
+                return;
+            }
+            marker.setLatLng(path[i]);
+            i++;
+        },800);
+    });
 }
 
 /* 初始化地图 */
 function initMap(){
     map = L.map('map').setView([22.5431,114.0579],13);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
         attribution:'© OpenStreetMap'
     }).addTo(map);
 }
 
-/* 粒子效果 */
-window.onload = function(){
-    particlesJS("particles", {
-        particles: {
-            number: { value: 80 },
-            size: { value: 3 },
-            move: { speed: 2 },
-            line_linked: { enable: true }
-        }
-    });
-    initMap();
-};
 </script>
 
 </head>
 
 <body>
 
-<!-- Mood 音乐 -->
-<audio id="bgm" loop>
-  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-</audio>
-
-<div id="particles"></div>
-
-<!-- 登录页 -->
 <div id="loginPage" class="login">
     <div class="login-box">
         <h2>系统登录</h2>
-        <input type="text" id="user" placeholder="用户名" autocomplete="off"><br>
-        <input type="password" id="pass" placeholder="密码" autocomplete="off"><br>
-        <button onclick="login();document.getElementById('bgm').play();">登录</button>
+        <input type="text" id="user" placeholder="用户名"><br>
+        <input type="password" id="pass" placeholder="密码"><br>
+        <button onclick="login()">登录</button>
     </div>
 </div>
 
-<!-- 后台 -->
 <div id="systemPage" style="display:none;">
 
 <div class="header">
@@ -208,7 +158,6 @@ window.onload = function(){
     <h3>车辆轨迹查询</h3>
     <input type="text" id="plate" placeholder="请输入车牌号">
     <button onclick="searchTrack()">查询</button>
-
     <div id="map"></div>
 </div>
 
