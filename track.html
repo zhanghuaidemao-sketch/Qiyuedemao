@@ -2,22 +2,39 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>车辆轨迹查询</title>
+<title>车辆轨迹查询系统</title>
 
 <style>
 body {
     margin: 0;
     padding: 0;
-    text-align: center;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
     color: white;
-    font-family: Arial;
-    background-image: url('https://picsum.photos/1920/1081');
-    background-size: cover;
-    background-position: center;
+    background: linear-gradient(-45deg, #141e30, #243b55, #0f2027, #203a43);
+    background-size: 400% 400%;
+    animation: bgMove 10s ease infinite;
 }
 
-.container {
-    margin-top: 150px;
+@keyframes bgMove {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+}
+
+.box {
+    background: rgba(0,0,0,0.6);
+    padding: 40px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,255,255,0.5);
+}
+
+h1 {
+    margin-bottom: 30px;
 }
 
 input {
@@ -32,21 +49,35 @@ button {
     font-size: 18px;
     border-radius: 5px;
     border: none;
-    background: black;
-    color: white;
+    background: cyan;
+    cursor: pointer;
+    margin-left: 10px;
 }
 
-a {
-    display: block;
+button:hover {
+    background: #00ffffaa;
+}
+
+.result {
     margin-top: 30px;
-    color: white;
+    font-size: 18px;
 }
 </style>
 
 <script>
 function searchTrack() {
     var plate = document.getElementById("plate").value;
-    alert("正在查询车辆：" + plate + " 的轨迹（演示页面）");
+
+    if(plate === ""){
+        alert("请输入车牌号！");
+        return;
+    }
+
+    document.getElementById("result").innerHTML =
+        "车辆 " + plate + " 的轨迹：<br><br>" +
+        "📍 08:30 - 南山区<br>" +
+        "📍 09:15 - 深圳湾<br>" +
+        "📍 10:05 - 福田中心";
 }
 </script>
 
@@ -54,13 +85,11 @@ function searchTrack() {
 
 <body>
 
-<div class="container">
-    <h1>车辆轨迹查询</h1>
-
+<div class="box">
+    <h1>🚗 车辆轨迹查询系统</h1>
     <input type="text" id="plate" placeholder="请输入车牌号">
     <button onclick="searchTrack()">查询</button>
-
-    <a href="index.html">返回首页</a>
+    <div class="result" id="result"></div>
 </div>
 
 </body>
