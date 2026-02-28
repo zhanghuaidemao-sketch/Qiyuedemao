@@ -8,60 +8,87 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-body{
-    margin:0;
-    font-family:Arial;
-    background:#0f172a;
-    color:white;
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
 }
 
-.header{
-    height:60px;
-    background:#111827;
-    display:flex;
-    align-items:center;
-    padding-left:20px;
-    font-size:20px;
+/* 登录页 */
+.login {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.main{
-    padding:20px;
+.login-box {
+    background: #1e293b;
+    padding: 40px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
 }
 
-#map{
-    height:500px;
-    margin-top:20px;
-    border-radius:10px;
+input {
+    width: 80%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: none;
 }
-button{
-    padding:10px 20px;
-    background:#3b82f6;
-    border:none;
-    border-radius:5px;
-    color:white;
-    cursor:pointer;
+
+button {
+    padding: 10px 20px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #2563eb;
+}
+
+/* 后台 */
+.header {
+    height: 60px;
+    background: #111827;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    font-size: 20px;
+}
+
+.main {
+    padding: 20px;
+}
+
+#map {
+    height: 500px;
+    margin-top: 20px;
+    border-radius: 10px;
 }
 </style>
-</head>
-
-<body>
-
-<div class="header">
-🚗 智能车辆监控后台系统（免Key真实地图）
-</div>
-
-<div class="main">
-    <button onclick="startTrack()">开始轨迹动画</button>
-    <div id="map"></div>
-</div>
 
 <script>
-var map = L.map('map').setView([22.5431,114.0579],13);
+function login(){
+    var user = document.getElementById("user").value;
+    var pass = document.getElementById("pass").value;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap'
-}).addTo(map);
+    // 已修改账号密码
+    if(user === "112233" && pass === "142536"){
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("systemPage").style.display = "block";
+    } else {
+        alert("账号或密码错误！");
+    }
+}
 
+var map;
+var marker;
 var path = [
     [22.5431,114.0579],
     [22.5531,114.0679],
@@ -69,9 +96,17 @@ var path = [
     [22.5731,114.0879]
 ];
 
-var polyline = L.polyline(path,{color:'cyan'}).addTo(map);
+function initMap(){
+    map = L.map('map').setView([22.5431,114.0579],13);
 
-var marker = L.marker(path[0]).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© OpenStreetMap'
+    }).addTo(map);
+
+    L.polyline(path,{color:'cyan'}).addTo(map);
+
+    marker = L.marker(path[0]).addTo(map);
+}
 
 function startTrack(){
     var i = 0;
@@ -84,6 +119,41 @@ function startTrack(){
         i++;
     },1000);
 }
+</script>
+
+</head>
+
+<body>
+
+<!-- 登录页面 -->
+<div id="loginPage" class="login">
+    <div class="login-box">
+        <h2>系统登录</h2>
+        <input type="text" id="user" placeholder="用户名"><br>
+        <input type="password" id="pass" placeholder="密码"><br>
+        <button onclick="login()">登录</button>
+        <p style="font-size:12px;margin-top:10px;">
+            账号：112233 密码：142536
+        </p>
+    </div>
+</div>
+
+<!-- 后台系统 -->
+<div id="systemPage" style="display:none;">
+
+<div class="header">
+🚗 智能车辆监控后台系统
+</div>
+
+<div class="main">
+    <button onclick="startTrack()">开始轨迹动画</button>
+    <div id="map"></div>
+</div>
+
+</div>
+
+<script>
+window.onload = initMap;
 </script>
 
 </body>
