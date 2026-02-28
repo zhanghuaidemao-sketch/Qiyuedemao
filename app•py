@@ -1,0 +1,15 @@
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "车牌反查系统已上线"
+
+@app.route("/search")
+def search():
+    plate = request.args.get("plate")
+    return f"你查询的车牌是：{plate}"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
