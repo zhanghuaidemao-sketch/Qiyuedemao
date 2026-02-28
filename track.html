@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>车辆轨迹查询</title>
+
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: white;
+    font-family: Arial;
+    background-image: url('https://picsum.photos/1920/1081');
+    background-size: cover;
+    background-position: center;
+}
+
+.container {
+    margin-top: 150px;
+}
+
+input {
+    padding: 10px;
+    font-size: 18px;
+    border-radius: 5px;
+    border: none;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    border-radius: 5px;
+    border: none;
+    background: black;
+    color: white;
+}
+
+a {
+    display: block;
+    margin-top: 30px;
+    color: white;
+}
+</style>
+
+<script>
+function searchTrack() {
+    var plate = document.getElementById("plate").value;
+    alert("正在查询车辆：" + plate + " 的轨迹（演示页面）");
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+    <h1>车辆轨迹查询</h1>
+
+    <input type="text" id="plate" placeholder="请输入车牌号">
+    <button onclick="searchTrack()">查询</button>
+
+    <a href="index.html">返回首页</a>
+</div>
+
+</body>
+</html>
