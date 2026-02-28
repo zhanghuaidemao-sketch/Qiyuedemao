@@ -9,84 +9,77 @@
 <script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: #0f172a;
-    color: white;
-    overflow: hidden;
+body{
+    margin:0;
+    font-family:Arial;
+    background:#0f172a;
+    color:white;
+    overflow:hidden;
 }
 
-/* 粒子背景 */
-#particles {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: black;
-    z-index: -1;
+#particles{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:black;
+    z-index:-1;
 }
 
-/* 登录页 */
-.login {
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.login{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
 }
 
-.login-box {
-    background: rgba(30,41,59,0.9);
-    padding: 40px;
-    border-radius: 10px;
-    width: 300px;
-    text-align: center;
+.login-box{
+    background:rgba(30,41,59,0.9);
+    padding:40px;
+    border-radius:10px;
+    width:300px;
+    text-align:center;
 }
 
-input {
-    width: 85%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: none;
+input{
+    width:85%;
+    padding:10px;
+    margin:10px 0;
+    border-radius:5px;
+    border:none;
 }
 
-button {
-    padding: 10px 20px;
-    background: #3b82f6;
-    border: none;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
+button{
+    padding:10px 20px;
+    background:#3b82f6;
+    border:none;
+    border-radius:5px;
+    color:white;
+    cursor:pointer;
 }
 
-button:hover {
-    background: #2563eb;
+.header{
+    height:60px;
+    background:#111827;
+    display:flex;
+    align-items:center;
+    padding-left:20px;
+    font-size:20px;
 }
 
-/* 后台 */
-.header {
-    height: 60px;
-    background: #111827;
-    display: flex;
-    align-items: center;
-    padding-left: 20px;
-    font-size: 20px;
+.main{
+    padding:20px;
 }
 
-.main {
-    padding: 20px;
-}
-
-#map {
-    height: 500px;
-    margin-top: 20px;
-    border-radius: 10px;
+#map{
+    height:400px;
+    margin-top:20px;
+    border-radius:10px;
 }
 </style>
 
 <script>
 
-/* 多用户系统（页面不显示账号） */
+/* 多用户 */
 var users = {};
 users["112233"] = "142536";
 users["admin"] = "888888";
@@ -122,29 +115,33 @@ function login(){
     }
 }
 
-/* 地图 */
+/* 地图变量 */
 var map;
 var marker;
-var path = [
-    [22.5431,114.0579],
-    [22.5531,114.0679],
-    [22.5631,114.0779],
-    [22.5731,114.0879]
-];
+var polyline;
 
-function initMap(){
-    map = L.map('map').setView([22.5431,114.0579],13);
+/* 查询车辆 */
+function searchTrack(){
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        attribution:'© OpenStreetMap'
-    }).addTo(map);
+    var plate = document.getElementById("plate").value;
+    if(plate===""){
+        alert("请输入车牌号！");
+        return;
+    }
 
-    L.polyline(path,{color:'cyan'}).addTo(map);
+    var path = [
+        [22.5431,114.0579],
+        [22.5531,114.0679],
+        [22.5631,114.0779],
+        [22.5731,114.0879]
+    ];
 
+    if(polyline) map.removeLayer(polyline);
+    if(marker) map.removeLayer(marker);
+
+    polyline = L.polyline(path,{color:'cyan'}).addTo(map);
     marker = L.marker(path[0]).addTo(map);
-}
 
-function startTrack(){
     var i = 0;
     var interval = setInterval(function(){
         if(i >= path.length){
@@ -154,6 +151,15 @@ function startTrack(){
         marker.setLatLng(path[i]);
         i++;
     },1000);
+}
+
+/* 初始化地图 */
+function initMap(){
+    map = L.map('map').setView([22.5431,114.0579],13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© OpenStreetMap'
+    }).addTo(map);
 }
 
 /* 粒子效果 */
@@ -174,19 +180,24 @@ window.onload = function(){
 
 <body>
 
+<!-- Mood 音乐 -->
+<audio id="bgm" loop>
+  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+</audio>
+
 <div id="particles"></div>
 
-<!-- 登录页面（无账号提示） -->
+<!-- 登录页 -->
 <div id="loginPage" class="login">
     <div class="login-box">
         <h2>系统登录</h2>
         <input type="text" id="user" placeholder="用户名" autocomplete="off"><br>
         <input type="password" id="pass" placeholder="密码" autocomplete="off"><br>
-        <button onclick="login()">登录</button>
+        <button onclick="login();document.getElementById('bgm').play();">登录</button>
     </div>
 </div>
 
-<!-- 后台系统 -->
+<!-- 后台 -->
 <div id="systemPage" style="display:none;">
 
 <div class="header">
@@ -194,7 +205,10 @@ window.onload = function(){
 </div>
 
 <div class="main">
-    <button onclick="startTrack()">开始轨迹动画</button>
+    <h3>车辆轨迹查询</h3>
+    <input type="text" id="plate" placeholder="请输入车牌号">
+    <button onclick="searchTrack()">查询</button>
+
     <div id="map"></div>
 </div>
 
