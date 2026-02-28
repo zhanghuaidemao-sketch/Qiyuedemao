@@ -6,6 +6,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
 
 <style>
 body {
@@ -42,7 +43,7 @@ body {
 }
 
 input {
-    width: 80%;
+    width: 85%;
     padding: 10px;
     margin: 10px 0;
     border-radius: 5px;
@@ -83,23 +84,20 @@ button:hover {
 }
 </style>
 
-<!-- 粒子特效库 -->
-<script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
-
 <script>
-/* 多用户系统 */
-var users = {
-    "112233":"142536",
-    "admin":"888888",
-    "test":"123123"
-};
+
+/* 多用户系统（页面不显示账号） */
+var users = {};
+users["112233"] = "142536";
+users["admin"] = "888888";
+users["test"] = "123123";
 
 var failCount = 0;
 var lock = false;
 
 function login(){
     if(lock){
-        alert("已锁定，请稍后再试！");
+        alert("系统已锁定，请稍后再试！");
         return;
     }
 
@@ -176,19 +174,14 @@ window.onload = function(){
 
 <body>
 
-<!-- Mood 音乐 -->
-<audio autoplay loop>
-  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-</audio>
-
 <div id="particles"></div>
 
-<!-- 登录页面 -->
+<!-- 登录页面（无账号提示） -->
 <div id="loginPage" class="login">
     <div class="login-box">
         <h2>系统登录</h2>
-        <input type="text" id="user" placeholder="用户名"><br>
-        <input type="password" id="pass" placeholder="密码"><br>
+        <input type="text" id="user" placeholder="用户名" autocomplete="off"><br>
+        <input type="password" id="pass" placeholder="密码" autocomplete="off"><br>
         <button onclick="login()">登录</button>
     </div>
 </div>
