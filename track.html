@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>车辆轨迹后台系统</title>
+<title>智能车辆监控系统</title>
 
 <style>
 body {
@@ -12,7 +12,44 @@ body {
     color: white;
 }
 
-/* 顶部栏 */
+/* 登录页 */
+.login {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-box {
+    background: #1e293b;
+    padding: 40px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+}
+
+input {
+    width: 80%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: none;
+}
+
+button {
+    padding: 10px 20px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #2563eb;
+}
+
+/* 后台 */
 .header {
     height: 60px;
     background: #111827;
@@ -23,7 +60,6 @@ body {
     border-bottom: 1px solid #1f2937;
 }
 
-/* 左侧菜单 */
 .sidebar {
     width: 200px;
     height: calc(100vh - 60px);
@@ -43,52 +79,53 @@ body {
     background: #1f2937;
 }
 
-/* 主内容 */
 .main {
     margin-left: 200px;
     margin-top: 60px;
-    padding: 40px;
+    padding: 30px;
 }
 
-/* 查询框 */
 .card {
     background: #1e293b;
-    padding: 30px;
+    padding: 20px;
     border-radius: 10px;
-    width: 500px;
+    width: 600px;
 }
 
-input {
-    padding: 10px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    width: 250px;
-}
-
-button {
-    padding: 10px 20px;
-    background: #3b82f6;
-    border: none;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
-    margin-left: 10px;
-}
-
-button:hover {
-    background: #2563eb;
-}
-
-.result {
+/* 假地图 */
+.map {
     margin-top: 20px;
-    font-size: 15px;
-    line-height: 25px;
+    width: 100%;
+    height: 300px;
+    background: linear-gradient(#1e3a8a, #1e40af);
+    position: relative;
+    border-radius: 10px;
+}
+
+.point {
+    width: 12px;
+    height: 12px;
+    background: red;
+    border-radius: 50%;
+    position: absolute;
 }
 </style>
 
 <script>
-function searchTrack() {
+
+function login(){
+    var user = document.getElementById("user").value;
+    var pass = document.getElementById("pass").value;
+
+    if(user === "admin" && pass === "123456"){
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("systemPage").style.display = "block";
+    } else {
+        alert("账号或密码错误！");
+    }
+}
+
+function searchTrack(){
     var plate = document.getElementById("plate").value;
 
     if(plate === ""){
@@ -97,23 +134,51 @@ function searchTrack() {
     }
 
     document.getElementById("result").innerHTML =
-        "【系统查询结果】<br><br>" +
         "车牌号：" + plate + "<br>" +
-        "状态：正常行驶<br>" +
-        "最后位置：福田区<br><br>" +
-        "轨迹记录：<br>" +
-        "08:30 - 南山区<br>" +
-        "09:15 - 深圳湾<br>" +
-        "10:05 - 福田中心";
+        "状态：正常<br>" +
+        "最后位置：福田区";
+
+    // 模拟地图轨迹点
+    var map = document.getElementById("map");
+    map.innerHTML = "";
+
+    var points = [
+        {top:50, left:80},
+        {top:120, left:200},
+        {top:200, left:350}
+    ];
+
+    for(var i=0;i<points.length;i++){
+        var p = document.createElement("div");
+        p.className="point";
+        p.style.top = points[i].top+"px";
+        p.style.left = points[i].left+"px";
+        map.appendChild(p);
+    }
 }
+
 </script>
 
 </head>
 
 <body>
 
+<!-- 登录页面 -->
+<div id="loginPage" class="login">
+    <div class="login-box">
+        <h2>系统登录</h2>
+        <input type="text" id="user" placeholder="用户名"><br>
+        <input type="password" id="pass" placeholder="密码"><br>
+        <button onclick="login()">登录</button>
+        <p style="font-size:12px;margin-top:10px;">测试账号：admin 密码：123456</p>
+    </div>
+</div>
+
+<!-- 后台系统 -->
+<div id="systemPage" style="display:none;">
+
 <div class="header">
-🚗 智能车辆监控管理系统
+🚗 智能车辆监控后台系统
 </div>
 
 <div class="sidebar">
@@ -129,8 +194,13 @@ function searchTrack() {
         <h2>车辆轨迹查询</h2>
         <input type="text" id="plate" placeholder="请输入车牌号">
         <button onclick="searchTrack()">查询</button>
-        <div class="result" id="result"></div>
+
+        <div id="result" style="margin-top:15px;"></div>
+
+        <div class="map" id="map"></div>
     </div>
+</div>
+
 </div>
 
 </body>
