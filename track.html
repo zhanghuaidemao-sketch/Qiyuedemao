@@ -4,204 +4,87 @@
 <meta charset="UTF-8">
 <title>智能车辆监控系统</title>
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: white;
+body{
+    margin:0;
+    font-family:Arial;
+    background:#0f172a;
+    color:white;
 }
 
-/* 登录页 */
-.login {
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.header{
+    height:60px;
+    background:#111827;
+    display:flex;
+    align-items:center;
+    padding-left:20px;
+    font-size:20px;
 }
 
-.login-box {
-    background: #1e293b;
-    padding: 40px;
-    border-radius: 10px;
-    width: 300px;
-    text-align: center;
+.main{
+    padding:20px;
 }
 
-input {
-    width: 80%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: none;
+#map{
+    height:500px;
+    margin-top:20px;
+    border-radius:10px;
 }
-
-button {
-    padding: 10px 20px;
-    background: #3b82f6;
-    border: none;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #2563eb;
-}
-
-/* 后台 */
-.header {
-    height: 60px;
-    background: #111827;
-    display: flex;
-    align-items: center;
-    padding-left: 20px;
-    font-size: 20px;
-    border-bottom: 1px solid #1f2937;
-}
-
-.sidebar {
-    width: 200px;
-    height: calc(100vh - 60px);
-    background: #111827;
-    position: fixed;
-    top: 60px;
-    left: 0;
-    padding-top: 20px;
-}
-
-.sidebar div {
-    padding: 15px;
-    cursor: pointer;
-}
-
-.sidebar div:hover {
-    background: #1f2937;
-}
-
-.main {
-    margin-left: 200px;
-    margin-top: 60px;
-    padding: 30px;
-}
-
-.card {
-    background: #1e293b;
-    padding: 20px;
-    border-radius: 10px;
-    width: 600px;
-}
-
-/* 假地图 */
-.map {
-    margin-top: 20px;
-    width: 100%;
-    height: 300px;
-    background: linear-gradient(#1e3a8a, #1e40af);
-    position: relative;
-    border-radius: 10px;
-}
-
-.point {
-    width: 12px;
-    height: 12px;
-    background: red;
-    border-radius: 50%;
-    position: absolute;
+button{
+    padding:10px 20px;
+    background:#3b82f6;
+    border:none;
+    border-radius:5px;
+    color:white;
+    cursor:pointer;
 }
 </style>
-
-<script>
-
-function login(){
-    var user = document.getElementById("user").value;
-    var pass = document.getElementById("pass").value;
-
-    if(user === "admin" && pass === "123456"){
-        document.getElementById("loginPage").style.display = "none";
-        document.getElementById("systemPage").style.display = "block";
-    } else {
-        alert("账号或密码错误！");
-    }
-}
-
-function searchTrack(){
-    var plate = document.getElementById("plate").value;
-
-    if(plate === ""){
-        alert("请输入车牌号！");
-        return;
-    }
-
-    document.getElementById("result").innerHTML =
-        "车牌号：" + plate + "<br>" +
-        "状态：正常<br>" +
-        "最后位置：福田区";
-
-    // 模拟地图轨迹点
-    var map = document.getElementById("map");
-    map.innerHTML = "";
-
-    var points = [
-        {top:50, left:80},
-        {top:120, left:200},
-        {top:200, left:350}
-    ];
-
-    for(var i=0;i<points.length;i++){
-        var p = document.createElement("div");
-        p.className="point";
-        p.style.top = points[i].top+"px";
-        p.style.left = points[i].left+"px";
-        map.appendChild(p);
-    }
-}
-
-</script>
-
 </head>
 
 <body>
 
-<!-- 登录页面 -->
-<div id="loginPage" class="login">
-    <div class="login-box">
-        <h2>系统登录</h2>
-        <input type="text" id="user" placeholder="用户名"><br>
-        <input type="password" id="pass" placeholder="密码"><br>
-        <button onclick="login()">登录</button>
-        <p style="font-size:12px;margin-top:10px;">测试账号：admin 密码：123456</p>
-    </div>
-</div>
-
-<!-- 后台系统 -->
-<div id="systemPage" style="display:none;">
-
 <div class="header">
-🚗 智能车辆监控后台系统
-</div>
-
-<div class="sidebar">
-    <div>📊 控制面板</div>
-    <div>🚗 车辆管理</div>
-    <div>📍 轨迹查询</div>
-    <div>👤 用户管理</div>
-    <div>⚙ 系统设置</div>
+🚗 智能车辆监控后台系统（免Key真实地图）
 </div>
 
 <div class="main">
-    <div class="card">
-        <h2>车辆轨迹查询</h2>
-        <input type="text" id="plate" placeholder="请输入车牌号">
-        <button onclick="searchTrack()">查询</button>
-
-        <div id="result" style="margin-top:15px;"></div>
-
-        <div class="map" id="map"></div>
-    </div>
+    <button onclick="startTrack()">开始轨迹动画</button>
+    <div id="map"></div>
 </div>
 
-</div>
+<script>
+var map = L.map('map').setView([22.5431,114.0579],13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap'
+}).addTo(map);
+
+var path = [
+    [22.5431,114.0579],
+    [22.5531,114.0679],
+    [22.5631,114.0779],
+    [22.5731,114.0879]
+];
+
+var polyline = L.polyline(path,{color:'cyan'}).addTo(map);
+
+var marker = L.marker(path[0]).addTo(map);
+
+function startTrack(){
+    var i = 0;
+    var interval = setInterval(function(){
+        if(i >= path.length){
+            clearInterval(interval);
+            return;
+        }
+        marker.setLatLng(path[i]);
+        i++;
+    },1000);
+}
+</script>
 
 </body>
 </html>
