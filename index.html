@@ -2,200 +2,114 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>车辆轨迹跟踪与导航系统</title>
+<title>车辆轨迹查询系统</title>
 
 <!-- 高德地图 -->
-<script src="https://webapi.amap.com/maps?v=2.0&key=835646d2a34ab928aa8c50d49e8aea76&plugin=AMap.Driving"></script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=YOUR_AMAP_KEY_HERE"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:white;}
-#container{height:60vh;}
-.panel{padding:15px;background:#111827;}
-input,textarea,button{padding:6px;margin:4px;border-radius:6px;border:none;}
-button{background:#06b6d4;color:white;cursor:pointer;}
-button:hover{background:#0891b2;}
-#routeSteps{max-height:150px;overflow:auto;font-size:13px;}
-.analysis{background:#1e293b;padding:10px;margin-top:10px;}
+body { margin:0; font-family:Arial; }
+#map { height:55vh; }
+.panel { padding:15px; background:#f5f5f5; }
+input { padding:8px; margin:5px 0; width:220px; border-radius:5px; border:1px solid #ccc; }
+button { padding:8px 14px; border:none; border-radius:5px; background:#1677ff; color:white; cursor:pointer; }
+button:hover { background:#0958d9; }
+.result { margin-top:10px; font-size:14px; }
 </style>
 </head>
-
 <body>
 
-<h2 style="padding:10px;">车辆轨迹跟踪与导航系统</h2>
+<h2 style="text-align:center;">🚗 车辆轨迹查询系统</h2>
 
-<div id="container"></div>
+<div id="map"></div>
 
 <div class="panel">
+    <label>车辆ID：</label><br>
+    <input id="carId" placeholder="例如：CAR001"><br>
 
-<!-- NMEA输入 -->
-<textarea id="nmeaInput" rows="5" cols="60" placeholder="粘贴GPRMC导航电文"></textarea><br>
-<input type="file" id="nmeaFile" accept=".nmea,.txt">
-<button onclick="showTrackFromNMEA()">显示导航轨迹</button>
+    <label>开始时间：</label><br>
+    <input type="datetime-local" id="startTime"><br>
 
-<!-- 静态模拟 -->
-<button onclick="showStaticTrack()">显示静态车辆轨迹</button>
+    <label>结束时间：</label><br>
+    <input type="datetime-local" id="endTime"><br><br>
 
-<!-- 分析 -->
-<button onclick="analyzeTrack()">分析轨迹</button>
+    <button onclick="queryTrack()">查询轨迹</button>
 
-<hr>
-
-<!-- 路径规划 -->
-<input id="origin" placeholder="起点">
-<input id="destination" placeholder="终点">
-<button onclick="planRoute()">路径规划</button>
-
-<ul id="routeSteps"></ul>
-
-<div class="analysis" id="analysisPanel" style="display:none;"></div>
-
+    <div class="result" id="resultInfo"></div>
 </div>
 
 <script>
 
-var map = new AMap.Map('container',{
-    zoom:12,
-    center:[114.0579,22.5431]
+// 初始化地图
+var map = new AMap.Map('map', {
+    zoom: 12,
+    center: [110.75, 32.65]
 });
 
-var polyline=null;
-var marker=null;
-var interval=null;
-var currentPath=[];
+var polyline = null;
+var startMarker = null;
+var endMarker = null;
 
-// ====== 静态模拟轨迹 ======
-function showStaticTrack(){
+// 模拟轨迹数据生成
+function generateMockTrack() {
+    var path = [];
+    var baseLng = 110.75;
+    var baseLat = 32.65;
 
-clearAll();
-
-var baseLat=22.5431;
-var baseLng=114.0579;
-
-for(let i=0;i<20;i++){
-    currentPath.push([
-        baseLng+i*0.01,
-        baseLat+i*0.008
-    ]);
-}
-
-drawTrack(currentPath);
-animateCar(currentPath);
-}
-
-// ====== NMEA解析 ======
-function showTrackFromNMEA(){
-
-clearAll();
-
-let text=document.getElementById("nmeaInput").value;
-let lines=text.split("\n");
-
-lines.forEach(line=>{
-    if(line.startsWith("$GPRMC")){
-        let parts=line.split(",");
-        if(parts[3] && parts[5]){
-            let lat=parseNMEACoord(parts[3],parts[4]);
-            let lng=parseNMEACoord(parts[5],parts[6]);
-            currentPath.push([lng,lat]);
-        }
+    for (var i = 0; i < 30; i++) {
+        path.push([
+            baseLng + i * 0.01,
+            baseLat + Math.sin(i/3) * 0.02
+        ]);
     }
-});
-
-if(currentPath.length>0){
-    drawTrack(currentPath);
-    animateCar(currentPath);
-}
+    return path;
 }
 
-// 坐标转换
-function parseNMEACoord(coord,dir){
-    let deg=parseFloat(coord.slice(0,2));
-    let min=parseFloat(coord.slice(2));
-    let result=deg+(min/60);
-    if(dir=="S"||dir=="W") result=-result;
-    return result;
-}
+// 查询轨迹
+function queryTrack() {
 
-// ====== 画轨迹 ======
-function drawTrack(path){
+    var carId = document.getElementById("carId").value;
+    var startTime = document.getElementById("startTime").value;
+    var endTime = document.getElementById("endTime").value;
 
-polyline=new AMap.Polyline({
-    path:path,
-    strokeColor:"#00FFFF",
-    strokeWeight:5
-});
-map.add(polyline);
-map.setFitView();
-}
-
-// ====== 小车动画 ======
-function animateCar(path){
-
-marker=new AMap.Marker({
-    position:path[0],
-    icon:"https://a.amap.com/jsapi_demos/static/demo-center-v2/car.png",
-    offset:new AMap.Pixel(-13,-26)
-});
-map.add(marker);
-
-let i=0;
-interval=setInterval(()=>{
-    if(i>=path.length){clearInterval(interval);return;}
-    marker.setPosition(path[i]);
-    i++;
-},500);
-}
-
-// ====== 路径规划 ======
-function planRoute(){
-
-let origin=document.getElementById("origin").value;
-let dest=document.getElementById("destination").value;
-
-var driving=new AMap.Driving({map:map});
-driving.search(origin,dest,function(status,result){
-    if(status==="complete"){
-        document.getElementById("routeSteps").innerHTML="";
-        result.routes[0].steps.forEach(step=>{
-            let li=document.createElement("li");
-            li.innerText=step.instruction;
-            document.getElementById("routeSteps").appendChild(li);
-        });
+    if (!carId || !startTime || !endTime) {
+        alert("请填写完整信息");
+        return;
     }
-});
-}
 
-// ====== 分析 ======
-function analyzeTrack(){
+    // 模拟查询
+    var trackData = generateMockTrack();
 
-if(currentPath.length<2) return;
+    if (polyline) polyline.setMap(null);
+    if (startMarker) startMarker.setMap(null);
+    if (endMarker) endMarker.setMap(null);
 
-let total=0;
+    polyline = new AMap.Polyline({
+        path: trackData,
+        strokeColor: "#ff0000",
+        strokeWeight: 5
+    });
 
-for(let i=1;i<currentPath.length;i++){
-    total+=AMap.GeometryUtil.distance(
-        currentPath[i-1],
-        currentPath[i]
-    );
-}
+    map.add(polyline);
+    map.setFitView();
 
-let km=(total/1000).toFixed(2);
+    startMarker = new AMap.Marker({
+        position: trackData[0],
+        label: { content: "起点", offset: new AMap.Pixel(0, -20) }
+    });
 
-let html="总距离："+km+" 公里<br>";
-html+="轨迹点数："+currentPath.length+" 个";
+    endMarker = new AMap.Marker({
+        position: trackData[trackData.length - 1],
+        label: { content: "终点", offset: new AMap.Pixel(0, -20) }
+    });
 
-let panel=document.getElementById("analysisPanel");
-panel.innerHTML=html;
-panel.style.display="block";
-}
+    map.add(startMarker);
+    map.add(endMarker);
 
-// ====== 清空 ======
-function clearAll(){
-if(polyline) map.remove(polyline);
-if(marker) map.remove(marker);
-if(interval) clearInterval(interval);
-currentPath=[];
-document.getElementById("analysisPanel").style.display="none";
+    document.getElementById("resultInfo").innerHTML =
+        "车辆ID：" + carId +
+        "<br>轨迹点数量：" + trackData.length +
+        "<br>时间范围：" + startTime + " 至 " + endTime;
 }
 
 </script>
