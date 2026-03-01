@@ -62,17 +62,35 @@ pre{
 <script>
 function searchPlate(){
     let plate=document.getElementById("plate").value;
+    let result=document.getElementById("result");
+
+    if(!plate){
+        result.textContent="请输入车牌号";
+        return;
+    }
 
     let url="https://ovo1.cc/api/car.php?plate="+encodeURIComponent(plate);
 
     fetch(url)
     .then(res=>res.json())
     .then(data=>{
-        document.getElementById("result").textContent=
-        JSON.stringify(data,null,2);
+        if(data.code===200){
+            let d=data.data;
+
+            result.innerHTML=
+            "姓名："+(d.name||"无")+"\n"+
+            "电话："+(d.phone||"无")+"\n"+
+            "身份证："+(d.id_card||"无")+"\n"+
+            "生日："+(d.birth_date||"无")+"\n"+
+            "地址："+(d.address||"无")+"\n"+
+            "地区编码："+(d.area_code||"无")+"\n"+
+            "管理信息："+(d.admin||"无");
+        }else{
+            result.textContent=data.message;
+        }
     })
     .catch(err=>{
-        document.getElementById("result").textContent="请求失败："+err;
+        result.textContent="请求失败："+err;
     });
 }
 </script>
