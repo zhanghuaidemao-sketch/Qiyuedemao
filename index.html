@@ -59,10 +59,11 @@ pre{
 <pre id="result"></pre>
 </div>
 
-<script>
+<script
 function searchPlate(){
     let plate=document.getElementById("plate").value;
-    let url="https://ovo1.cc/api/chegui.php?message="+encodeURIComponent(plate);
+
+    let url="https://ovo1.cc/api/car.php?plate="+encodeURIComponent(plate);
 
     fetch(url)
     .then(res=>res.json())
