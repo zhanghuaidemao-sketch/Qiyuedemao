@@ -1,128 +1,159 @@
-# -*- coding: utf-8 -*-
-import math
-import requests
-from datetime import datetime
-from flask import Flask, request, jsonify, render_template
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>车辆轨迹系统（静态 GitHub Pages 版）</title>
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
+    <!-- 高德地图 JS API -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=YOUR_AMAP_KEY_HERE&plugin=AMap.Driving"></script>
 
-# 高德地图API KEY
-GAODE_API_KEY = '835646d2a34ab928aa8c50d49e8aea76'
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
 
-# ================= 内置真实NMEA数据 =================
-TEST_NMEA_DATA = """
-$GPRMC,121000.00,A,3239.0360,N,11044.1400,E,038.9,139.0,070824,,,A*6C
-$GPRMC,121001.00,A,3239.0380,N,11044.2000,E,038.9,139.0,070824,,,A*6F
-$GPRMC,121002.00,A,3239.0400,N,11044.2600,E,038.9,139.0,070824,,,A*6E
-$GPRMC,121003.00,A,3239.0420,N,11044.3200,E,038.9,139.0,070824,,,A*6D
-$GPRMC,121004.00,A,3239.0440,N,11044.3800,E,038.9,139.0,070824,,,A*6A
-$GPRMC,121005.00,A,3239.0460,N,11044.4400,E,038.9,139.0,070824,,,A*69
-$GPRMC,121006.00,A,3239.0480,N,11044.5000,E,038.9,139.0,070824,,,A*68
-$GPRMC,121007.00,A,3239.0500,N,11044.5600,E,038.9,139.0,070824,,,A*67
-$GPRMC,121008.00,A,3239.0520,N,11044.6200,E,038.9,139.0,070824,,,A*66
-$GPRMC,121009.00,A,3239.0540,N,11044.6800,E,038.9,139.0,070824,,,A*65
-$GPRMC,121010.00,A,3239.0560,N,11044.7400,E,038.9,139.0,070824,,,A*64
-$GPRMC,121011.00,A,3239.0580,N,11044.8000,E,038.9,139.0,070824,,,A*63
-$GPRMC,121012.00,A,3239.0600,N,11044.8600,E,038.9,139.0,070824,,,A*62
-$GPRMC,121013.00,A,3239.0620,N,11044.9200,E,038.9,139.0,070824,,,A*61
-$GPRMC,121014.00,A,3239.0640,N,11044.9800,E,038.9,139.0,070824,,,A*60
-$GPRMC,121015.00,A,3239.0660,N,11045.0400,E,038.9,139.0,070824,,,A*6B
-$GPRMC,121016.00,A,3239.0680,N,11045.1000,E,038.9,139.0,070824,,,A*6C
-$GPRMC,121017.00,A,3239.0700,N,11045.1600,E,038.9,139.0,070824,,,A*6D
-$GPRMC,121018.00,A,3239.0720,N,11045.2200,E,038.9,139.0,070824,,,A*6E
-$GPRMC,121019.00,A,3239.0740,N,11045.2800,E,038.9,139.0,070824,,,A*6F
-$GPRMC,121020.00,A,3239.0760,N,11045.3400,E,038.9,139.0,070824,,,A*60
-$GPRMC,121021.00,A,3239.0780,N,11045.4000,E,038.9,139.0,070824,,,A*61
-$GPRMC,121022.00,A,3239.0800,N,11045.4430,E,038.9,147.0,070824,,,A*62
-"""
+<h2 style="text-align:center;">车辆轨迹系统（静态版）</h2>
 
-# ================= 坐标转换 =================
-def wgs84_to_gcj02(lng, lat):
+<div id="map"></div>
 
-    def out_of_china(lng, lat):
-        return not (73.66 < lng < 135.05 and 3.86 < lat < 53.55)
+<div class="panel">
 
-    def transform_lat(lng, lat):
-        ret = -100.0 + 2.0 * lng + 3.0 * lat
-        ret += 0.2 * lat * lat + 0.1 * lng * lat
-        ret += 0.2 * math.sqrt(abs(lng))
-        ret += (20.0 * math.sin(6.0 * lng * math.pi) +
-                20.0 * math.sin(2.0 * lng * math.pi)) * 2.0 / 3.0
-        ret += (20.0 * math.sin(lat * math.pi) +
-                40.0 * math.sin(lat / 3.0 * math.pi)) * 2.0 / 3.0
-        return ret
+<textarea id="nmeaInput" placeholder="粘贴 NMEA / GPRMC 数据"></textarea>
+<input type="file" id="nmeaFile" accept=".txt,.nmea">
+<button onclick="parseNMEA()">解析并显示轨迹</button>
 
-    def transform_lng(lng, lat):
-        ret = 300.0 + lng + 2.0 * lat
-        ret += 0.1 * lng * lng + 0.1 * lng * lat
-        ret += 0.1 * math.sqrt(abs(lng))
-        ret += (20.0 * math.sin(6.0 * lng * math.pi) +
-                20.0 * math.sin(2.0 * lng * math.pi)) * 2.0 / 3.0
-        return ret
+<hr>
 
-    if out_of_china(lng, lat):
-        return lng, lat
+<input id="origin" placeholder="起点(经纬度/地名)">
+<input id="destination" placeholder="终点(经纬度/地名)">
+<button onclick="planRoute()">路径规划</button>
 
-    a = 6378245.0
-    ee = 0.00669342162296594323
+<ul id="routeSteps"></ul>
 
-    dlat = transform_lat(lng - 105.0, lat - 35.0)
-    dlng = transform_lng(lng - 105.0, lat - 35.0)
+<div id="analysisPanel" class="analysis-panel"></div>
 
-    radlat = lat / 180.0 * math.pi
-    magic = math.sin(radlat)
-    magic = 1 - ee * magic * magic
-    sqrtmagic = math.sqrt(magic)
+</div>
 
-    dlat = (dlat * 180.0) / ((a * (1 - ee)) /
-                             (magic * sqrtmagic) * math.pi)
-    dlng = (dlng * 180.0) / (a / sqrtmagic *
-                             math.cos(radlat) * math.pi)
+<script src="static/main.js"></script>
+</body>
+</html>
+body { margin:0; font-family:Arial; }
+#map { height:50vh; }
+.panel { padding:10px; }
+textarea, input { width:95%; padding:8px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
+button { padding:8px 12px; margin:6px 0; border:none; border-radius:5px; background:#06b6d4; color:white; cursor:pointer; }
+button:hover { background:#0891b2; }
+.analysis-panel { margin-top:10px; font-size:14px; padding:10px; background:#f5f5f5; }
+#routeSteps { padding-left:20px; }
+// 初始化高德地图
+var map = new AMap.Map('map', {
+    zoom: 12,
+    center: [110.75, 32.65]
+});
 
-    return lng + dlng, lat + dlat
+var currentPath = [];
+var polyline = null;
 
+// 坐标系转换（WGS84→GCJ02）
+function wgs84_to_gcj02(lng, lat) {
+    function out_of_china(lng, lat) {
+        return !(lng > 73.66 && lng < 135.05 && lat > 3.86 && lat < 53.55);
+    }
+    if (out_of_china(lng, lat)) return [lng, lat];
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+    var a = 6378245.0,
+        ee = 0.00669342162296594323;
 
+    function transformLat(lng, lat) {
+        var ret = -100 + 2 * lng + 3 * lat + 0.2 * lat * lat + 0.1 * lng * lat + 0.2 * Math.sqrt(Math.abs(lng));
+        ret += (20 * Math.sin(6 * lng * Math.PI) + 20 * Math.sin(2 * lng * Math.PI)) * 2 / 3;
+        ret += (20 * Math.sin(lat * Math.PI) + 40 * Math.sin(lat / 3 * Math.PI)) * 2 / 3;
+        return ret;
+    }
 
-# ================= 自动解析内置轨迹 =================
-@app.route('/api/track')
-def track():
+    function transformLng(lng, lat) {
+        var ret = 300 + lng + 2 * lat + 0.1 * lng * lng + 0.1 * lng * lat + 0.1 * Math.sqrt(Math.abs(lng));
+        ret += (20 * Math.sin(6 * lng * Math.PI) + 20 * Math.sin(2 * lng * Math.PI)) * 2 / 3;
+        return ret;
+    }
 
-    lines = TEST_NMEA_DATA.strip().split('\n')
-    points = []
+    var dlat = transformLat(lng - 105, lat - 35);
+    var dlng = transformLng(lng - 105, lat - 35);
+    var radlat = lat * Math.PI / 180;
+    var magic = Math.sin(radlat);
+    magic = 1 - ee * magic * magic;
+    var sqrtmagic = Math.sqrt(magic);
 
-    for line in lines:
-        parts = line.split(',')
+    dlat = (dlat * 180) / ((a * (1 - ee)) / (magic * sqrtmagic) * Math.PI);
+    dlng = (dlng * 180) / (a / sqrtmagic * Math.cos(radlat) * Math.PI);
 
-        if len(parts) >= 12 and parts[0] == '$GPRMC' and parts[2] == 'A':
-            try:
-                lat = float(parts[3][:2]) + float(parts[3][2:]) / 60
-                if parts[4] == 'S':
-                    lat = -lat
+    return [lng + dlng, lat + dlat];
+}
 
-                lon = float(parts[5][:3]) + float(parts[5][3:]) / 60
-                if parts[6] == 'W':
-                    lon = -lon
+// 解析 NMEA 并绘制轨迹
+function parseNMEA() {
+    var text = document.getElementById("nmeaInput").value.trim();
+    var file = document.getElementById("nmeaFile").files[0];
 
-                gcj_lng, gcj_lat = wgs84_to_gcj02(lon, lat)
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function (e) { drawNMEA(e.target.result); }
+        reader.readAsText(file);
+    } else {
+        drawNMEA(text);
+    }
+}
 
-                speed_knots = float(parts[7])
-                speed = speed_knots * 0.514444
+function drawNMEA(txt) {
+    var lines = txt.split("\n");
+    currentPath = [];
 
-                points.append({
-                    "lat": gcj_lat,
-                    "lng": gcj_lng,
-                    "speed": round(speed, 2)
-                })
+    lines.forEach(function (line) {
+        var parts = line.split(",");
+        if (parts[0] == "$GPRMC" && parts[2] == "A") {
+            var lat = parseFloat(parts[3].slice(0, 2)) + parseFloat(parts[3].slice(2)) / 60;
+            if (parts[4] == "S") lat = -lat;
 
-            except:
-                continue
+            var lng = parseFloat(parts[5].slice(0, 3)) + parseFloat(parts[5].slice(3)) / 60;
+            if (parts[6] == "W") lng = -lng;
 
-    return jsonify(points)
+            currentPath.push(wgs84_to_gcj02(lng, lat));
+        }
+    });
 
+    if (!currentPath.length) { alert("无有效轨迹"); return; }
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    if (polyline) polyline.setMap(null);
+
+    polyline = new AMap.Polyline({
+        path: currentPath,
+        strokeColor: "#00f",
+        strokeWeight: 4
+    });
+
+    map.add(polyline);
+    map.setFitView();
+}
+
+// 简单路径规划
+function planRoute() {
+    var o = document.getElementById("origin").value;
+    var d = document.getElementById("destination").value;
+    if (!o || !d) { alert("请输入起点终点"); return; }
+
+    var driving = new AMap.Driving({ map: map });
+
+    driving.search(o, d, function (status, result) {
+        if (status === "complete") {
+            var path = [];
+            result.routes[0].steps.forEach(function (s) {
+                path = path.concat(s.polyline);
+            });
+            if (polyline) polyline.setMap(null);
+            polyline = new AMap.Polyline({ path: path, strokeColor: "#f00", strokeWeight: 4 });
+            map.add(polyline);
+            map.setFitView();
+            document.getElementById("routeSteps").innerHTML =
+                result.routes[0].steps.map(s => "<li>" + s.instruction + "</li>").join("");
+        }
+    });
+}
