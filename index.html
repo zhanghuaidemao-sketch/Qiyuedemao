@@ -2,49 +2,45 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>车辆轨迹系统（静态 GitHub Pages 版）</title>
+    <title>车辆轨迹系统（静态一体化版）</title>
 
     <!-- 高德地图 JS API -->
     <script src="https://webapi.amap.com/maps?v=2.0&key=YOUR_AMAP_KEY_HERE&plugin=AMap.Driving"></script>
 
-    <link rel="stylesheet" href="static/style.css">
+    <style>
+    body { margin:0; font-family:Arial; }
+    #map { height:50vh; }
+    .panel { padding:10px; }
+    textarea, input { width:95%; padding:8px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
+    button { padding:8px 12px; margin:6px 0; border:none; border-radius:5px; background:#06b6d4; color:white; cursor:pointer; }
+    button:hover { background:#0891b2; }
+    #routeSteps { padding-left:20px; }
+    </style>
 </head>
 <body>
 
-<h2 style="text-align:center;">车辆轨迹系统（静态版）</h2>
+<h2 style="text-align:center;">车辆轨迹系统（静态一体化版）</h2>
 
 <div id="map"></div>
 
 <div class="panel">
 
-<textarea id="nmeaInput" placeholder="粘贴 NMEA / GPRMC 数据"></textarea>
-<input type="file" id="nmeaFile" accept=".txt,.nmea">
+<textarea id="nmeaInput" placeholder="粘贴 NMEA / GPRMC 数据"></textarea><br>
+<input type="file" id="nmeaFile" accept=".txt,.nmea"><br>
 <button onclick="parseNMEA()">解析并显示轨迹</button>
 
 <hr>
 
-<input id="origin" placeholder="起点(经纬度/地名)">
-<input id="destination" placeholder="终点(经纬度/地名)">
+<input id="origin" placeholder="起点(经纬度/地名)"><br>
+<input id="destination" placeholder="终点(经纬度/地名)"><br>
 <button onclick="planRoute()">路径规划</button>
 
 <ul id="routeSteps"></ul>
 
-<div id="analysisPanel" class="analysis-panel"></div>
-
 </div>
 
-<script src="static/main.js"></script>
-</body>
-</html>
-body { margin:0; font-family:Arial; }
-#map { height:50vh; }
-.panel { padding:10px; }
-textarea, input { width:95%; padding:8px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
-button { padding:8px 12px; margin:6px 0; border:none; border-radius:5px; background:#06b6d4; color:white; cursor:pointer; }
-button:hover { background:#0891b2; }
-.analysis-panel { margin-top:10px; font-size:14px; padding:10px; background:#f5f5f5; }
-#routeSteps { padding-left:20px; }
-// 初始化高德地图
+<script>
+// ========== 地图初始化 ==========
 var map = new AMap.Map('map', {
     zoom: 12,
     center: [110.75, 32.65]
@@ -53,15 +49,14 @@ var map = new AMap.Map('map', {
 var currentPath = [];
 var polyline = null;
 
-// 坐标系转换（WGS84→GCJ02）
+// ========== 坐标转换 WGS84 → GCJ02 ==========
 function wgs84_to_gcj02(lng, lat) {
     function out_of_china(lng, lat) {
         return !(lng > 73.66 && lng < 135.05 && lat > 3.86 && lat < 53.55);
     }
     if (out_of_china(lng, lat)) return [lng, lat];
 
-    var a = 6378245.0,
-        ee = 0.00669342162296594323;
+    var a = 6378245.0, ee = 0.00669342162296594323;
 
     function transformLat(lng, lat) {
         var ret = -100 + 2 * lng + 3 * lat + 0.2 * lat * lat + 0.1 * lng * lat + 0.2 * Math.sqrt(Math.abs(lng));
@@ -89,7 +84,7 @@ function wgs84_to_gcj02(lng, lat) {
     return [lng + dlng, lat + dlat];
 }
 
-// 解析 NMEA 并绘制轨迹
+// ========== 解析 NMEA 并绘制轨迹 ==========
 function parseNMEA() {
     var text = document.getElementById("nmeaInput").value.trim();
     var file = document.getElementById("nmeaFile").files[0];
@@ -134,7 +129,7 @@ function drawNMEA(txt) {
     map.setFitView();
 }
 
-// 简单路径规划
+// ========== 简易路径规划 ==========
 function planRoute() {
     var o = document.getElementById("origin").value;
     var d = document.getElementById("destination").value;
@@ -149,11 +144,17 @@ function planRoute() {
                 path = path.concat(s.polyline);
             });
             if (polyline) polyline.setMap(null);
+
             polyline = new AMap.Polyline({ path: path, strokeColor: "#f00", strokeWeight: 4 });
             map.add(polyline);
             map.setFitView();
+
             document.getElementById("routeSteps").innerHTML =
                 result.routes[0].steps.map(s => "<li>" + s.instruction + "</li>").join("");
         }
     });
 }
+</script>
+
+</body>
+</html>
