@@ -1,4 +1,15 @@
-# 内置测试NMEA数据
+# -*- coding: utf-8 -*-
+import math
+import requests
+from datetime import datetime
+from flask import Flask, request, jsonify, render_template
+
+app = Flask(__name__, static_folder='static', template_folder='templates')
+
+# 高德地图API KEY
+GAODE_API_KEY = '835646d2a34ab928aa8c50d49e8aea76'
+
+# ================= 内置真实NMEA数据 =================
 TEST_NMEA_DATA = """
 $GPRMC,121000.00,A,3239.0360,N,11044.1400,E,038.9,139.0,070824,,,A*6C
 $GPRMC,121001.00,A,3239.0380,N,11044.2000,E,038.9,139.0,070824,,,A*6F
@@ -24,161 +35,94 @@ $GPRMC,121020.00,A,3239.0760,N,11045.3400,E,038.9,139.0,070824,,,A*60
 $GPRMC,121021.00,A,3239.0780,N,11045.4000,E,038.9,139.0,070824,,,A*61
 $GPRMC,121022.00,A,3239.0800,N,11045.4430,E,038.9,147.0,070824,,,A*62
 """
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<title>车辆轨迹跟踪与导航系统</title>
 
-<script src="https://webapi.amap.com/maps?v=2.0&key=835646d2a34ab928aa8c50d49e8aea76"></script>
+# ================= 坐标转换 =================
+def wgs84_to_gcj02(lng, lat):
 
-<style>
-body{margin:0;font-family:Arial;background:#0f172a;color:white;}
-#container{height:60vh;}
-.panel{padding:15px;background:#111827;}
-input,textarea,button{padding:6px;margin:4px;border-radius:6px;border:none;}
-button{background:#06b6d4;color:white;cursor:pointer;}
-button:hover{background:#0891b2;}
-#routeSteps{max-height:150px;overflow:auto;font-size:13px;}
-.analysis{background:#1e293b;padding:10px;margin-top:10px;}
-</style>
-</head>
+    def out_of_china(lng, lat):
+        return not (73.66 < lng < 135.05 and 3.86 < lat < 53.55)
 
-<body>
+    def transform_lat(lng, lat):
+        ret = -100.0 + 2.0 * lng + 3.0 * lat
+        ret += 0.2 * lat * lat + 0.1 * lng * lat
+        ret += 0.2 * math.sqrt(abs(lng))
+        ret += (20.0 * math.sin(6.0 * lng * math.pi) +
+                20.0 * math.sin(2.0 * lng * math.pi)) * 2.0 / 3.0
+        ret += (20.0 * math.sin(lat * math.pi) +
+                40.0 * math.sin(lat / 3.0 * math.pi)) * 2.0 / 3.0
+        return ret
 
-<h2 style="padding:10px;">车辆轨迹跟踪与导航系统</h2>
+    def transform_lng(lng, lat):
+        ret = 300.0 + lng + 2.0 * lat
+        ret += 0.1 * lng * lng + 0.1 * lng * lat
+        ret += 0.1 * math.sqrt(abs(lng))
+        ret += (20.0 * math.sin(6.0 * lng * math.pi) +
+                20.0 * math.sin(2.0 * lng * math.pi)) * 2.0 / 3.0
+        return ret
 
-<div id="container"></div>
+    if out_of_china(lng, lat):
+        return lng, lat
 
-<div class="panel">
+    a = 6378245.0
+    ee = 0.00669342162296594323
 
-<textarea id="nmeaInput" rows="5" cols="60" placeholder="粘贴GPRMC导航电文"></textarea><br>
-<button onclick="loadNMEA()">解析并显示轨迹</button>
-<button onclick="loadStaticTrack()">显示静态轨迹</button>
-<button onclick="analyzeTrack()">分析轨迹</button>
+    dlat = transform_lat(lng - 105.0, lat - 35.0)
+    dlng = transform_lng(lng - 105.0, lat - 35.0)
 
-<hr>
+    radlat = lat / 180.0 * math.pi
+    magic = math.sin(radlat)
+    magic = 1 - ee * magic * magic
+    sqrtmagic = math.sqrt(magic)
 
-<input id="origin" placeholder="起点 lng,lat">
-<input id="destination" placeholder="终点 lng,lat">
-<button onclick="planRoute()">路径规划</button>
+    dlat = (dlat * 180.0) / ((a * (1 - ee)) /
+                             (magic * sqrtmagic) * math.pi)
+    dlng = (dlng * 180.0) / (a / sqrtmagic *
+                             math.cos(radlat) * math.pi)
 
-<ul id="routeSteps"></ul>
+    return lng + dlng, lat + dlat
 
-<div class="analysis" id="analysisPanel" style="display:none;"></div>
 
-</div>
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-<script>
 
-var map = new AMap.Map('container',{
-    zoom:12,
-    center:[110.75,32.65]
-});
+# ================= 自动解析内置轨迹 =================
+@app.route('/api/track')
+def track():
 
-var polyline=null;
-var marker=null;
-var currentPoints=[];
+    lines = TEST_NMEA_DATA.strip().split('\n')
+    points = []
 
-// 画轨迹
-function drawTrack(points){
+    for line in lines:
+        parts = line.split(',')
 
-if(polyline) map.remove(polyline);
+        if len(parts) >= 12 and parts[0] == '$GPRMC' and parts[2] == 'A':
+            try:
+                lat = float(parts[3][:2]) + float(parts[3][2:]) / 60
+                if parts[4] == 'S':
+                    lat = -lat
 
-let path=points.map(p=>[p.lng,p.lat]);
+                lon = float(parts[5][:3]) + float(parts[5][3:]) / 60
+                if parts[6] == 'W':
+                    lon = -lon
 
-polyline=new AMap.Polyline({
-    path:path,
-    strokeColor:"#00FFFF",
-    strokeWeight:5
-});
-map.add(polyline);
-map.setFitView();
-}
+                gcj_lng, gcj_lat = wgs84_to_gcj02(lon, lat)
 
-// ===== 调用 Flask 静态轨迹 API =====
-function loadStaticTrack(){
+                speed_knots = float(parts[7])
+                speed = speed_knots * 0.514444
 
-fetch("/api/track")
-.then(res=>res.json())
-.then(data=>{
-    currentPoints=data;
-    drawTrack(data);
-});
-}
+                points.append({
+                    "lat": gcj_lat,
+                    "lng": gcj_lng,
+                    "speed": round(speed, 2)
+                })
 
-// ===== 调用 Flask 解析NMEA API =====
-function loadNMEA(){
+            except:
+                continue
 
-let text=document.getElementById("nmeaInput").value;
+    return jsonify(points)
 
-fetch("/api/parse_nmea_batch",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({nmea:text})
-})
-.then(res=>res.json())
-.then(data=>{
-    currentPoints=data;
-    drawTrack(data);
-});
-}
 
-// ===== 调用 Flask 轨迹分析 API =====
-function analyzeTrack(){
-
-fetch("/api/analyze_track",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({points:currentPoints})
-})
-.then(res=>res.json())
-.then(data=>{
-    let html="";
-    html+="总距离："+data.total_distance+" km<br>";
-    html+="平均速度："+data.avg_speed+" m/s<br>";
-    html+="最大速度："+data.max_speed+" m/s<br>";
-    html+="持续时间："+data.duration+" 小时<br>";
-    html+="轨迹点数："+data.point_count+"<br>";
-
-    document.getElementById("analysisPanel").innerHTML=html;
-    document.getElementById("analysisPanel").style.display="block";
-});
-}
-
-// ===== 调用 Flask 路径规划 API =====
-function planRoute(){
-
-let origin=document.getElementById("origin").value;
-let dest=document.getElementById("destination").value;
-
-fetch(`/api/route?origin=${origin}&destination=${dest}`)
-.then(res=>res.json())
-.then(data=>{
-
-    if(data.polyline){
-
-        let path=data.polyline.map(p=>[p.lng,p.lat]);
-
-        let routeLine=new AMap.Polyline({
-            path:path,
-            strokeColor:"#FF0000",
-            strokeWeight:6
-        });
-        map.add(routeLine);
-        map.setFitView();
-
-        document.getElementById("routeSteps").innerHTML="";
-        data.steps.forEach(step=>{
-            let li=document.createElement("li");
-            li.innerText=step;
-            document.getElementById("routeSteps").appendChild(li);
-        });
-    }
-});
-}
-
-</script>
-
-</body>
-</html>
+if __name__ == '__main__':
+    app.run(debug=True)
