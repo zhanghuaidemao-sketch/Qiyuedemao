@@ -4,15 +4,45 @@
 <meta charset="utf-8">
 <title>车辆轨迹查询系统</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-body { margin:0; font-family:Arial; background:#111; color:white; }
-#map { height:90vh; }
-.control { padding:10px; background:#000; }
-input { padding:5px; }
-button { padding:5px 10px; cursor:pointer; }
+body { margin:0; font-family:Arial; background:#0f172a; color:white; }
+#map { height:85vh; }
+
+.control {
+    padding:12px;
+    background:#111827;
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
+
+input {
+    padding:6px;
+    border-radius:6px;
+    border:none;
+}
+
+button {
+    padding:6px 12px;
+    background:#06b6d4;
+    border:none;
+    border-radius:6px;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover {
+    background:#0891b2;
+}
+
+#info {
+    padding:8px 12px;
+    background:#1e293b;
+    font-size:14px;
+}
 </style>
 </head>
 <body>
@@ -23,6 +53,7 @@ button { padding:5px 10px; cursor:pointer; }
 <button onclick="searchTrack()">查询轨迹</button>
 </div>
 
+<div id="info">当前位置：-</div>
 <div id="map"></div>
 
 <script>
@@ -36,7 +67,13 @@ var polyline=null;
 var marker=null;
 var interval=null;
 
-// 模拟轨迹数据（根据车牌生成不同轨迹）
+var carIcon = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/744/744465.png",
+    iconSize: [32,32],
+    iconAnchor: [16,16]
+});
+
+// 生成轨迹
 function generateTrack(plate){
 
     var base_lat = 22.5431;
@@ -45,7 +82,7 @@ function generateTrack(plate){
 
     var offset = plate.length * 0.005;
 
-    for(var i=0;i<15;i++){
+    for(var i=0;i<20;i++){
         path.push([
             base_lat + i*0.01 + offset,
             base_lng + i*0.008 + offset
@@ -66,8 +103,14 @@ if(polyline) map.removeLayer(polyline);
 if(marker) map.removeLayer(marker);
 if(interval) clearInterval(interval);
 
-polyline=L.polyline(path,{color:'cyan'}).addTo(map);
-marker=L.marker(path[0]).addTo(map);
+// 轨迹线
+polyline=L.polyline(path,{
+    color:'#22d3ee',
+    weight:5
+}).addTo(map);
+
+// 小车图标
+marker=L.marker(path[0],{icon:carIcon}).addTo(map);
 
 map.fitBounds(polyline.getBounds());
 
@@ -77,9 +120,15 @@ interval=setInterval(function(){
         clearInterval(interval);
         return;
     }
+
     marker.setLatLng(path[i]);
+
+    document.getElementById("info").innerHTML =
+        "当前位置：纬度 " + path[i][0].toFixed(5) +
+        " , 经度 " + path[i][1].toFixed(5);
+
     i++;
-},600);
+},500);
 
 }
 </script>
