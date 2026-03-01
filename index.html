@@ -2,16 +2,15 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>查询车辆轨迹</title>
-
-<!-- 高德地图 -->
-<script src="https://webapi.amap.com/maps?v=2.0&key=YOUR_AMAP_KEY_HERE"></script>
+<title>车辆查询</title>
 
 <style>
 body {
     margin: 0;
     font-family: Arial, sans-serif;
+    background: #f4f6f9;
 }
+
 header {
     background: #1677ff;
     color: white;
@@ -19,134 +18,70 @@ header {
     text-align: center;
     font-size: 20px;
 }
-#map {
-    height: 60vh;
+
+.container {
+    width: 400px;
+    margin: 50px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
-.panel {
-    padding: 20px;
-    background: #f5f5f5;
-}
+
 input {
-    padding: 8px;
-    margin: 5px 0;
-    width: 220px;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
     border-radius: 5px;
     border: 1px solid #ccc;
 }
+
 button {
-    padding: 8px 16px;
+    width: 100%;
+    padding: 10px;
     border: none;
     border-radius: 5px;
     background: #1677ff;
     color: white;
+    font-size: 15px;
     cursor: pointer;
 }
+
 button:hover {
     background: #0958d9;
 }
-.info {
-    margin-top: 10px;
+
+.result {
+    margin-top: 20px;
     font-size: 14px;
+    line-height: 1.6;
+}
+.label {
+    font-weight: bold;
 }
 </style>
 </head>
 <body>
 
-<header>查询车辆轨迹</header>
+<header>车辆查询</header>
 
-<div id="map"></div>
+<div class="container">
 
-<div class="panel">
+    <label>请输入车辆编号：</label>
+    <input id="carId" placeholder="例如：CAR001">
 
-    <label>车辆编号：</label><br>
-    <input id="carId" placeholder="例如：CAR001"><br>
+    <button onclick="queryCar()">查询</button>
 
-    <label>开始时间：</label><br>
-    <input type="datetime-local" id="startTime"><br>
-
-    <label>结束时间：</label><br>
-    <input type="datetime-local" id="endTime"><br><br>
-
-    <button onclick="queryTrack()">查询轨迹</button>
-
-    <div class="info" id="info"></div>
+    <div class="result" id="result"></div>
 
 </div>
 
 <script>
 
-// 初始化地图
-var map = new AMap.Map('map', {
-    zoom: 12,
-    center: [110.75, 32.65]
-});
-
-var polyline = null;
-var startMarker = null;
-var endMarker = null;
-
-// 模拟轨迹数据（演示用）
-function generateTrack() {
-    var path = [];
-    var baseLng = 110.75;
-    var baseLat = 32.65;
-
-    for (var i = 0; i < 25; i++) {
-        path.push([
-            baseLng + i * 0.01,
-            baseLat + Math.sin(i/3) * 0.02
-        ]);
-    }
-    return path;
-}
-
-// 查询轨迹
-function queryTrack() {
-
-    var carId = document.getElementById("carId").value;
-    var startTime = document.getElementById("startTime").value;
-    var endTime = document.getElementById("endTime").value;
-
-    if (!carId || !startTime || !endTime) {
-        alert("请填写完整信息");
-        return;
-    }
-
-    var track = generateTrack();
-
-    if (polyline) polyline.setMap(null);
-    if (startMarker) startMarker.setMap(null);
-    if (endMarker) endMarker.setMap(null);
-
-    polyline = new AMap.Polyline({
-        path: track,
-        strokeColor: "#ff0000",
-        strokeWeight: 5
-    });
-
-    map.add(polyline);
-    map.setFitView();
-
-    startMarker = new AMap.Marker({
-        position: track[0],
-        label: { content: "起点" }
-    });
-
-    endMarker = new AMap.Marker({
-        position: track[track.length - 1],
-        label: { content: "终点" }
-    });
-
-    map.add(startMarker);
-    map.add(endMarker);
-
-    document.getElementById("info").innerHTML =
-        "车辆编号：" + carId +
-        "<br>轨迹点数：" + track.length +
-        "<br>时间范围：" + startTime + " 至 " + endTime;
-}
-
-</script>
-
-</body>
-</html>
+// 模拟数据库数据
+var carDatabase = {
+    "CAR001": {
+        plate: "鄂A12345",
+        model: "比亚迪 宋PLUS",
+        driver: "张三",
+        status:
