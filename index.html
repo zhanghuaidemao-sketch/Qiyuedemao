@@ -3,94 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>车牌归属查询</title>
+<title>车牌信息查询系统</title>
+
 <style>
+*{margin:0;padding:0;box-sizing:border-box;}
 body{
-    margin:0;
     height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    background: linear-gradient(135deg,#1e3c72,#2a5298);
-    font-family:Arial;
+    background: linear-gradient(-45deg,#141e30,#243b55,#1f4037,#134e5e);
+    background-size:400% 400%;
+    animation: gradientBG 10s ease infinite;
+    font-family: "Microsoft YaHei", sans-serif;
     color:white;
 }
-.box{
-    background: rgba(255,255,255,0.1);
-    padding:30px;
-    border-radius:15px;
-    backdrop-filter: blur(10px);
-    width:320px;
-    text-align:center;
+
+@keyframes gradientBG{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
 }
+
+.card{
+    width:350px;
+    padding:30px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.1);
+    backdrop-filter:blur(15px);
+    box-shadow:0 0 30px rgba(0,0,0,0.5);
+    text-align:center;
+    animation: fadeIn 1s ease;
+}
+
+@keyframes fadeIn{
+    from{opacity:0;transform:translateY(20px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+h2{
+    margin-bottom:20px;
+    font-weight:normal;
+}
+
 input{
     width:100%;
-    padding:10px;
+    padding:12px;
     border:none;
-    border-radius:8px;
+    border-radius:10px;
     margin-bottom:15px;
+    font-size:16px;
 }
+
 button{
     width:100%;
-    padding:10px;
+    padding:12px;
     border:none;
-    border-radius:8px;
-    background:#00c6ff;
+    border-radius:10px;
+    font-size:16px;
+    background:linear-gradient(45deg,#00c6ff,#0072ff);
     color:white;
     cursor:pointer;
+    transition:0.3s;
 }
+
 button:hover{
-    background:#0072ff;
+    transform:scale(1.05);
 }
-pre{
+
+#result{
+    margin-top:20px;
     text-align:left;
-    font-size:13px;
-    margin-top:15px;
+    font-size:14px;
     white-space:pre-wrap;
+}
+
+.notice-link{
+    margin-top:15px;
+    display:block;
+    color:#fff;
+    font-size:13px;
+    opacity:0.8;
+    text-decoration:none;
+}
+.notice-link:hover{
+    opacity:1;
+}
+.loading{
+    animation: blink 1s infinite;
+}
+@keyframes blink{
+    50%{opacity:0.5;}
 }
 </style>
 </head>
+
 <body>
 
-<div class="box">
-<h2>车牌归属查询</h2>
-<input type="text" id="plate" placeholder="输入车牌号">
-<button onclick="searchPlate()">查询</button>
-<pre id="result"></pre>
+<div class="card">
+    <h2>🚗 车牌信息查询</h2>
+    <input type="text" id="plate" placeholder="请输入车牌号">
+    <button id="btn" onclick="searchPlate()">查询</button>
+    <div id="result"></div>
+    <a href="notice.html" class="notice-link">📢 公告页面</a>
 </div>
 
 <script>
 function searchPlate(){
     let plate=document.getElementById("plate").value;
     let result=document.getElementById("result");
+    let btn=document.getElementById("btn");
 
     if(!plate){
-        result.textContent="请输入车牌号";
+        result.innerHTML="⚠️ 请输入车牌号";
         return;
     }
 
-    let url="https://ovo1.cc/api/car.php?plate="+encodeURIComponent(plate);
+    btn.disabled=true;
+    btn.innerText="查询中...";
+    result.innerHTML="<span class='loading'>正在查询...</span>";
 
-    fetch(url)
+    fetch("https://ovo1.cc/api/car.php?plate="+encodeURIComponent(plate))
     .then(res=>res.json())
     .then(data=>{
+        btn.disabled=false;
+        btn.innerText="查询";
+
         if(data.code===200){
             let d=data.data;
-
             result.innerHTML=
-            "姓名："+(d.name||"无")+"\n"+
-            "电话："+(d.phone||"无")+"\n"+
-            "身份证："+(d.id_card||"无")+"\n"+
-            "生日："+(d.birth_date||"无")+"\n"+
-            "地址："+(d.address||"无")+"\n"+
-            "地区编码："+(d.area_code||"无")+"\n"+
+            "姓名："+(d.name||"无")+"<br>"+
+            "电话："+(d.phone||"无")+"<br>"+
+            "身份证："+(d.id_card||"无")+"<br>"+
+            "生日："+(d.birth_date||"无")+"<br>"+
+            "地址："+(d.address||"无")+"<br>"+
+            "地区编码："+(d.area_code||"无")+"<br>"+
             "管理信息："+(d.admin||"无");
         }else{
-            result.textContent=data.message;
+            result.innerHTML="❌ "+data.message;
         }
     })
     .catch(err=>{
-        result.textContent="请求失败："+err;
+        btn.disabled=false;
+        btn.innerText="查询";
+        result.innerHTML="请求失败："+err;
     });
 }
 </script>
